@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6">
+            
+        <div id="welcomeScreen" class="flex flex-col items-center">
+            <h2 class="text-2xl font-bold mb-4">Scan Receipt</h2>
+            
+            <input type="file" id="imageInput" class="hidden" accept="image/*">
+            
+            <div id="dropZone" class="w-full border-2 border-dashed border-gray-500 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors bg-gray-700 mb-4">
+                <p class="text-gray-300">Click here to choose a receipt image</p>
+                <p id="fileNameDisplay" class="text-sm text-blue-400 mt-2 font-semibold"></p>
+            </div>
+
+            <button id="analyzeBtn" disabled class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                Analyze Receipt
+            </button>
+        </div>
+                
+        <div id="processingScreen" class="hidden flex-col items-center py-8">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h2 class="text-xl font-semibold animate-pulse">Scanning your receipt...</h2>
+            <p class="text-gray-400 text-sm mt-2">Talking to Azure AI</p>
+        </div>
+                
+        <div id="resultsScreen" class="hidden flex-col">
+            <h2 class="text-2xl font-bold mb-4 text-green-400">Success!</h2>
+            <div class="bg-gray-900 p-4 rounded-lg border border-gray-700 overflow-auto max-h-64">
+                <pre id="textOutput" class="text-sm text-gray-300 whitespace-pre-wrap"></pre>
+            </div>
+            <button id="resetBtn" class="mt-4 w-full border border-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-all">
+                Scan Another
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. Grab all the HTML elements
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const processingScreen = document.getElementById('processingScreen');
+        const resultsScreen = document.getElementById('resultsScreen');
+        
+        const dropZone = document.getElementById('dropZone');
+        const imageInput = document.getElementById('imageInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const textOutput = document.getElementById('textOutput');
+
+        let selectedFile = null;
+
+        // 2. Make the Big Box trigger the hidden File Input
+        dropZone.addEventListener('click', () => {
+            imageInput.click();
+        });
+
+        // 3. Listen for when a file is actually selected
+        imageInput.addEventListener('change', (event) => {
+            selectedFile = event.target.files[0];
+            if (selectedFile) {
+                // Show the file name and light up the analyze button
+                fileNameDisplay.innerText = `Selected: ${selectedFile.name}`;
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        // 4. The Main Action: Clicking Analyze
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            resultsHeader.innerText = "Success!";
+            resultsHeader.className = "text-2xl font-bold mb-4 text-green-400";
+            textOutput.classList.remove("text-red-400");
+
+
+            // Switch UI from Welcome -> Processing
+            welcomeScreen.classList.add('hidden');
+            processingScreen.classList.remove('hidden');
+             
+
+            try {
+                // Prepare the file to send
+                const formData = new FormData();
+                formData.append('receiptImage', selectedFile);
+
+                // Talks to C# Azure Function 
+                const response = await fetch("https://receiptanalyzer-a6a3ayajh0bmdraq.eastus-01.azurewebsites.net/api/analyze", {
+                    method: "POST",
+                    body: selectedFile, 
+                    headers: {
+                        "Content-Type": "application/octet-stream"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server Error: ${response.status}`);
+                }
+
+                // Get the text back from the server
+                const data = await response.text();
+
+                // Inject the text into the results box
+                textOutput.innerText = data;
+
+            } catch (err) {
+                // If it fails, show the error in the results box
+
+                const resultsHeader = resultsScreen.querySelector('h2');
+                resultsHeader.innerText = "Analysis Failed";
+                resultsHeader.className = "text-2xl font-bold text-red-600 animate-pulse";
+
+                textOutput.innerText = `Error: ${err.message}\nMake sure your C# server is running!`;
+                textOutput.classList.add("text-red-400");
+            }
+
+            // Switch UI from Processing -> Results
+            processingScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+        });
+
+        // 5. Reset button logic
+        resetBtn.addEventListener('click', () => {
+            selectedFile = null;
+            imageInput.value = "";
+            fileNameDisplay.innerText = "";
+            analyzeBtn.disabled = true;
+            textOutput.innerText = "";
+            
+            
+            resultsScreen.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
