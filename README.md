@@ -24,7 +24,7 @@ For each receipt, the analysis comes back in three sections:
 The Azure OpenAI client is created once in `Startup.cs` and passed into the function through dependency injection.
 
 ## History
-This project was first built with Google Gemini as the AI model. I later rebuilt it as a C# Azure Function that calls GPT-4o mini on Azure OpenAI, which is the version in this repository.
+This project was first built with Google Gemini, which wrote the C# Azure Function and web page in this repository. The function calls GPT-4o mini on Azure OpenAI to analyze each receipt.
 
 ## Project structure
 ```
