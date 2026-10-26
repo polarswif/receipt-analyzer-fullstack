@@ -55,6 +55,7 @@
         const analyzeBtn = document.getElementById('analyzeBtn');
         const resetBtn = document.getElementById('resetBtn');
         const textOutput = document.getElementById('textOutput');
+        const resultsHeader = resultsScreen.querySelector('h2');
 
         let selectedFile = null;
 
@@ -114,7 +115,6 @@
             } catch (err) {
                 // If it fails, show the error in the results box
 
-                const resultsHeader = resultsScreen.querySelector('h2');
                 resultsHeader.innerText = "Analysis Failed";
                 resultsHeader.className = "text-2xl font-bold text-red-600 animate-pulse";
 
